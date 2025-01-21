@@ -69,6 +69,20 @@ describe("WebSocketService", () => {
       expect(mockSocket.close).toHaveBeenCalledWith(1008, "clientId is required");
     });
 
+    it("closes the socket if no URL is provided", () => {
+      const mockSocket: Partial<WebSocket> = {
+        close: jest.fn()
+      };
+      const mockReq: Partial<IncomingMessage> = {
+        url: ""
+      };
+
+      // Trigger a connection event with no URL
+      connectionHandler(mockSocket as WebSocket, mockReq as IncomingMessage);
+
+      expect(mockSocket.close).toHaveBeenCalledWith(1008, "clientId is required");
+    });
+
     it("stores the socket if clientId is present, sends CLIENT_ID", () => {
       const mockSocket: Partial<WebSocket> = {
         close: jest.fn(),
@@ -267,6 +281,54 @@ describe("WebSocketService", () => {
 
       // No failures if all sends are "OK"
       expect(mockQueue.onSendFailure).not.toHaveBeenCalled();
+    });
+
+    it("handles send failure and retries with exponential backoff", async () => {
+      mockQueue.getMessagesToSend.mockReturnValue([
+        {
+          id: "m5",
+          clientId: "clientX",
+          payload: { shortenedURL: "http://retry.com" },
+          retryCount: 0,
+          nextAttempt: Date.now(),
+          createdAt: Date.now()
+        }
+      ]);
+
+      // Force an error in socket.send
+      mockSocket.send.mockImplementationOnce((_: any, cb: (arg0: Error) => void) => {
+        if (cb) {
+          cb(new Error("Send failure"));
+        }
+      });
+
+      await broadcastFn();
+
+      expect(mockQueue.onSendFailure).toHaveBeenCalledWith("m5");
+
+      // Simulate the next attempt with increased retryCount
+      mockQueue.getMessagesToSend.mockReturnValue([
+        {
+          id: "m5",
+          clientId: "clientX",
+          payload: { shortenedURL: "http://retry.com" },
+          retryCount: 1,
+          nextAttempt: Date.now(),
+          createdAt: Date.now()
+        }
+      ]);
+
+      // This time, the send should succeed
+      mockSocket.send.mockImplementationOnce((_: any, cb: (arg0?: Error) => void) => {
+        if (cb) {
+          cb();
+        }
+      });
+
+      await broadcastFn();
+
+      // Ensure no further failure is recorded
+      expect(mockQueue.onSendFailure).toHaveBeenCalledTimes(1);
     });
 
     it("on error in socket.send, calls onSendFailure", async () => {

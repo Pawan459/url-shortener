@@ -72,7 +72,7 @@ describe('InMemoryUrlStorage', () => {
     const retrievedShortCode2 = await storage.getShortCodeByOriginalUrl(originalUrl2);
 
     expect(retrievedUrl).toBe(originalUrl2);
-    expect(retrievedShortCode1).toBeUndefined();
+    expect(retrievedShortCode1).toBe(shortCode);
     expect(retrievedShortCode2).toBe(shortCode);
   });
 

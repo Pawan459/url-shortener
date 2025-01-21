@@ -96,12 +96,9 @@ export class WebSocketService {
    */
   private extractClientId(url?: string): string | undefined {
     if (!url) return;
-    try {
-      const urlObj = new URL(url, "http://localhost"); // base is irrelevant here
-      return urlObj.searchParams.get("clientId") || undefined;
-    } catch {
-      return undefined;
-    }
+
+    const urlObj = new URL(url, "http://localhost"); // base is irrelevant here
+    return urlObj.searchParams.get("clientId") || undefined;
   }
 
   /**
@@ -139,7 +136,6 @@ export class WebSocketService {
       const clientSocket = this.clients.get(msg.clientId);
 
       if (!clientSocket || clientSocket.readyState !== clientSocket.OPEN) {
-        console.log(`Client ${msg.clientId} is not connected`);
         // No active socket for this client -> onSendFailure -> exponential backoff
         await this.messageQueue.onSendFailure(msg.id);
         continue;
@@ -152,19 +148,15 @@ export class WebSocketService {
         payload: msg.payload
       });
 
-      try {
-        clientSocket.send(payload, async (err?: Error) => {
-          if (err) {
-            console.error(`Failed to send msg ${msg.id} to client ${msg.clientId}`, err);
-            await this.messageQueue.onSendFailure(msg.id);
-          }
-          // If no error, message is "sent" but not necessarily ack'd
-          // We'll wait for ACK from the client
-        });
-      } catch (error) {
-        console.error("Error during send:", error);
-        await this.messageQueue.onSendFailure(msg.id);
-      }
+      clientSocket.send(payload, async (err?: Error) => {
+        if (err) {
+          console.error(`Failed to send msg ${msg.id} to client ${msg.clientId}`, err);
+          await this.messageQueue.onSendFailure(msg.id);
+        }
+        // If no error, message is "sent" but not necessarily ack'd
+        // We'll wait for ACK from the client
+      });
+
     }
   }
 

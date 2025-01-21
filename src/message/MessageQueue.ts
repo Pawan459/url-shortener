@@ -13,8 +13,6 @@ export class MessageQueue {
   private backoffBaseMs = 2000;
   private maxDelayMs = 30000;
 
-  private isInitialized = false;
-
   private readonly purgePolicy: PurgePolicy;
   // Interval to periodically purge stale messages
   private purgeInterval: NodeJS.Timeout | null = null;
@@ -23,10 +21,12 @@ export class MessageQueue {
     this.filePath = path.resolve(filePath);
     this.fileQueue = fileQueue;
     this.purgePolicy = purgePolicy;
+
+    // Initialize the queue from disk
+    void this.init();
   }
 
-  public async init(): Promise<void> {
-    if (this.isInitialized) return;
+  private async init(): Promise<void> {
     try {
       const raw = await fs.readFile(this.filePath, "utf-8");
 
@@ -42,7 +42,6 @@ export class MessageQueue {
       console.log("PersistentMessageQueue: Starting with empty or new file.");
     }
 
-    this.isInitialized = true;
     // Start the purge interval
     this.purgeInterval = setInterval(() => {
       void this.purgeStaleMessages();
@@ -53,8 +52,6 @@ export class MessageQueue {
    * Add a new message to the queue and persist
    */
   public async add(messageId: string, clientId: string, payload: any): Promise<void> {
-    await this.init();
-
     // (Optional) Dedup example: if payload is the same, we might skip
     // For a real scenario, you'd define "identical" more precisely.
     for (const m of this.messages.values()) {

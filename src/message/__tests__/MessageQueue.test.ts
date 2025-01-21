@@ -31,15 +31,12 @@ describe("MessageQueue", () => {
   it("should initialize with empty file", async () => {
     (fs.readFile as jest.Mock).mockRejectedValue(new Error("File not found"));
 
-    await messageQueue.init();
 
     expect(fs.readFile).toHaveBeenCalledWith(MOCK_FILE_PATH, "utf-8");
-    expect(messageQueue["isInitialized"]).toBe(true);
   });
 
   it("should add a new message and persist it", async () => {
     (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify({ messages: {} }));
-    await messageQueue.init();
 
     await messageQueue.add("msg1", "client1", { data: "test" });
 
@@ -49,7 +46,6 @@ describe("MessageQueue", () => {
 
   it("should get messages that are due for delivery", async () => {
     (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify({ messages: {} }));
-    await messageQueue.init();
 
     await messageQueue.add("msg1", "client1", { data: "test" });
     const messages = messageQueue.getMessagesToSend();
@@ -60,7 +56,6 @@ describe("MessageQueue", () => {
 
   it("should acknowledge a message and remove it", async () => {
     (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify({ messages: {} }));
-    await messageQueue.init();
 
     await messageQueue.add("msg1", "client1", { data: "test" });
     await messageQueue.ack("msg1");
@@ -71,7 +66,6 @@ describe("MessageQueue", () => {
 
   it("should handle send failure and schedule next attempt", async () => {
     (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify({ messages: {} }));
-    await messageQueue.init();
 
     await messageQueue.add("msg1", "client1", { data: "test" });
     await messageQueue.onSendFailure("msg1");
@@ -84,7 +78,6 @@ describe("MessageQueue", () => {
 
   it("should periodically purge stale messages", async () => {
     (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify({ messages: {} }));
-    await messageQueue.init();
 
     const spy = jest.spyOn(messageQueue as any, "purgeStaleMessages");
 
@@ -95,7 +88,6 @@ describe("MessageQueue", () => {
 
   it("should save to disk", async () => {
     (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify({ messages: {} }));
-    await messageQueue.init();
 
     await messageQueue.add("msg1", "client1", { data: "test" });
 
@@ -114,7 +106,6 @@ describe("MessageQueue", () => {
 
   it("should not purge messages that are not stale", async () => {
     (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify({ messages: {} }));
-    await messageQueue.init();
 
     await messageQueue.add("msg1", "client1", { data: "test" });
 
@@ -129,7 +120,6 @@ describe("MessageQueue", () => {
 
   it("should purge messages that are stale", async () => {
     (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify({ messages: {} }));
-    await messageQueue.init();
 
     await messageQueue.add("msg1", "client1", { data: "test" });
 
@@ -144,7 +134,6 @@ describe("MessageQueue", () => {
 
   it("should handle multiple send failures and schedule next attempts correctly", async () => {
     (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify({ messages: {} }));
-    await messageQueue.init();
 
     await messageQueue.add("msg1", "client1", { data: "test" });
 
@@ -162,7 +151,6 @@ describe("MessageQueue", () => {
 
   it("should not purge messages if purgePolicy is not expired", async () => {
     (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify({ messages: {} }));
-    await messageQueue.init();
 
     await messageQueue.add("msg1", "client1", { data: "test" });
 
@@ -177,7 +165,6 @@ describe("MessageQueue", () => {
 
   it("should clear interval on close", async () => {
     const clearIntervalSpy = jest.spyOn(global, "clearInterval");
-    await messageQueue.init();
 
     messageQueue.close();
 
