@@ -1,4 +1,4 @@
-import { AsyncQueue } from "../AsyncQueue";
+import { AsyncQueue } from "@app/concurrency";
 
 describe("AsyncQueue", () => {
   let queue: AsyncQueue;
