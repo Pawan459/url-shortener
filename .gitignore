@@ -1,0 +1,7 @@
+# Ignore the node_modules directory, which contains all the npm packages.
+# This directory is generated automatically by npm and should not be included in version control.
+node_modules
+
+# Ignore the dist directory, which contains the build output files.
+# This directory is generated during the build process and should not be included in version control.
+dist
