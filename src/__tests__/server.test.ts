@@ -1,10 +1,11 @@
 import request from "supertest";
+import http from 'http';
 import { WebSocket } from "ws";
 
 import { main } from "@app/server";
 
 describe("URL Shortener API (Integration)", () => {
-  let server: import("http").Server;
+  let server: http.Server;
   let port: number;
   let baseURL: string;
 
@@ -132,4 +133,119 @@ describe("URL Shortener API (Integration)", () => {
     // Close the WebSocket
     ws.close();
   }, 15000); // Increase the test timeout if the WS flow can take >5s
+
+  describe('Shutdown and Signal Handlers', () => {
+    let processExitSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      processExitSpy = jest.spyOn(process, "exit").mockImplementation((code?: number | string | null | undefined) => {
+        throw new Error(`process.exit(${code}) called`);
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it("should gracefully shutdown on SIGINT", async () => {
+      const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => { });
+
+      const emitSIGINT = new Promise<void>((resolve) => {
+        server.close = jest.fn((callback) => {
+          console.log("Server closed.");
+          resolve();
+          if (callback) callback();
+        }) as any;
+
+        process.emit("SIGINT");
+      });
+
+      await emitSIGINT;
+
+      expect(consoleSpy).toHaveBeenCalledWith("Server closed.");
+      expect(processExitSpy).toHaveBeenCalledWith(130);
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should gracefully shutdown on SIGTERM", async () => {
+      const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => { });
+
+      const emitSIGTERM = new Promise<void>((resolve) => {
+        server.close = jest.fn((callback) => {
+          console.log("Server closed.");
+          resolve();
+          if (callback) callback();
+        }) as any;
+
+        process.emit("SIGTERM");
+      });
+
+      await emitSIGTERM;
+
+      expect(consoleSpy).toHaveBeenCalledWith("Server closed.");
+      expect(processExitSpy).toHaveBeenCalledWith(130);
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should log message on process exit", () => {
+      const consoleSpy = jest.spyOn(console, "info").mockImplementation(() => { });
+      const processExitSpy = jest.spyOn(process, "exit").mockImplementation(() => {
+        console.info("Exiting");
+        throw new Error("process.exit(undefined) called");
+      });
+
+      expect(() => process.exit()).toThrow("process.exit(undefined) called");
+      expect(consoleSpy).toHaveBeenCalledWith("Exiting");
+
+      // Restore mocks
+      consoleSpy.mockRestore();
+      processExitSpy.mockRestore();
+    });
+
+    it("should handle uncaughtException and shutdown", async () => {
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => { });
+
+      const error = new Error("Test uncaught exception");
+      const emitUncaughtException = new Promise<void>((resolve) => {
+        server.close = jest.fn((callback) => {
+          console.error("Server closed.");
+          resolve();
+          if (callback) callback();
+        }) as any;
+
+        process.emit("uncaughtException", error);
+      });
+
+      await emitUncaughtException;
+
+      expect(consoleSpy).toHaveBeenCalledWith("Uncaught exception", error);
+      expect(processExitSpy).toHaveBeenCalledWith(1);
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should handle unhandledRejection and shutdown", async () => {
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => { });
+
+      const reason = "Test unhandled rejection";
+      const emitUnhandledRejection = new Promise<void>((resolve) => {
+        server.close = jest.fn((callback) => {
+          console.error("Server closed.");
+          resolve();
+          if (callback) callback();
+        }) as any;
+
+        process.emit("unhandledRejection", reason, Promise.reject(reason).catch(() => { }));
+      });
+
+      await emitUnhandledRejection;
+
+      expect(consoleSpy).toHaveBeenCalledWith("Unhandled Rejection at promise", reason);
+      expect(processExitSpy).toHaveBeenCalledWith(2);
+
+      consoleSpy.mockRestore();
+    });
+  });
 });

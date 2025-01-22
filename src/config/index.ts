@@ -29,7 +29,7 @@ export const BASE_URL: string = process.env["BASE_URL"] ?? `http://localhost:${P
  * 
  * @constant {string} URLS_FILE - The file path for storing URLs.
  */
-export const URLS_FILE: string = process.env["URLS_FILE"] ?? "urls.json";
+export const URLS_FILE: string = "./data/" + (process.env["URLS_FILE"] ?? "urls.json");
 
 /**
  * The path to the messages file.
@@ -39,7 +39,7 @@ export const URLS_FILE: string = process.env["URLS_FILE"] ?? "urls.json";
  * 
  * @constant {string} MESSAGES_FILE - The path to the messages file.
  */
-export const MESSAGES_FILE: string = process.env["MESSAGES_FILE"] ?? "messages.json";
+export const MESSAGES_FILE: string = "./data/" + (process.env["MESSAGES_FILE"] ?? "messages.json");
 
 
 /**

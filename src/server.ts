@@ -80,7 +80,7 @@ export function main(port?: number): { app: express.Application; server: http.Se
   });
 
   // On process shutdown, gracefully close
-  function shutdown(errorCode: string | number | null | undefined): void {
+  function shutdown(errorCode: number): void {
     console.log("Shutting down...");
     wsService.close();
     persistentQueue.close();
