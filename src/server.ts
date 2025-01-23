@@ -72,7 +72,7 @@ export function main(port?: number): { app: express.Application; server: http.Se
   app.get("/:code", urlController.resolveUrl);
 
   // 10) Start server
-  const REAL_PORT = port || PORT;
+  const REAL_PORT = port ?? PORT;
 
   server.listen(REAL_PORT, () => {
     console.log(`Server listening on port ${REAL_PORT}`);
