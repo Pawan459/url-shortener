@@ -28,7 +28,17 @@ export class MessageQueue {
 
   private async init(): Promise<void> {
     try {
-      const raw = await fs.readFile(this.filePath, "utf-8");
+      let raw = "{}";
+      try {
+        raw = await fs.readFile(this.filePath, "utf-8");
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          await fs.mkdir(path.dirname(this.filePath), { recursive: true });
+          await fs.writeFile(this.filePath, raw, "utf-8");
+        } else {
+          throw error;
+        }
+      }
 
       const data: IPersistentQueueData = JSON.parse(raw);
       for (const msgId in data.messages) {

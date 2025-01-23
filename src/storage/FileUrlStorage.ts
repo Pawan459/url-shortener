@@ -46,7 +46,19 @@ export class FileUrlStorage implements IUrlStorage {
   private async initializeIfNeeded(): Promise<void> {
     if (this.isInitialized) return;
     try {
-      const raw = await fs.readFile(this.filePath, "utf-8");
+      let raw;
+      try {
+        raw = await fs.readFile(this.filePath, "utf-8");
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          // File doesn't exist, create directory and file with empty data
+          await fs.mkdir(path.dirname(this.filePath), { recursive: true });
+          await fs.writeFile(this.filePath, JSON.stringify(this.data, null, 2), "utf-8");
+          raw = JSON.stringify(this.data);
+        } else {
+          throw error;
+        }
+      }
       const parsed = JSON.parse(raw);
       if (
         parsed &&
